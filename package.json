@@ -1,0 +1,38 @@
+{
+  "name": "receipt-splitter-setup",
+  "version": "1.0.0",
+  "description": "ReceiptSplitter - настройка и тестирование",
+  "main": "test-connection.js",
+  "scripts": {
+    "test": "node test-final.js",
+    "test-bot": "node test-bot.js",
+    "test-ocr": "node test-ocr.js",
+    "bot": "node bot.js",
+    "start": "node bot.js",
+    "setup": "npm install && node test-final.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.38.4",
+    "dotenv": "^16.6.1",
+    "node-fetch": "^2.7.0",
+    "node-telegram-bot-api": "^0.64.0",
+    "openai": "^5.23.1",
+    "sharp": "^0.34.3",
+    "tesseract.js": "^6.0.1",
+    "uuid": "^8.3.2"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "supabase",
+    "receipt-splitter"
+  ],
+  "author": "ReceiptSplitter Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.891.0",
+    "mime": "^4.1.0",
+    "mime-types": "^3.0.1"
+  }
+}
