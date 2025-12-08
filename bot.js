@@ -31,15 +31,35 @@ const supabase = createClient(
 // Инициализация бота
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
+// ID админского канала для логов
+const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID; // Добавьте это в .env
+
+// Функция отправки логов
+async function logToAdmin(text, photoFileId = null) {
+  if (!ADMIN_CHANNEL_ID) return;
+  
+  try {
+    if (photoFileId) {
+      await bot.sendPhoto(ADMIN_CHANNEL_ID, photoFileId, { caption: text });
+    } else {
+      await bot.sendMessage(ADMIN_CHANNEL_ID, text, { parse_mode: 'HTML' });
+    }
+  } catch (e) {
+    console.error('Ошибка отправки лога:', e.message);
+  }
+}
+
 console.log('🤖 ReceiptSplitter Bot запущен!');
 
 // Обработчик команды /start
 bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
   const chatId = msg.chat.id;
   const firstName = msg.from.first_name;
+  const username = msg.from.username ? `@${msg.from.username}` : '';
   const payload = (match && match[1]) ? String(match[1]).trim() : '';
   
   console.log(`👤 Пользователь ${firstName} (ID: ${chatId}) запустил бота`);
+  logToAdmin(`👤 <b>Новый пользователь:</b>\n${firstName} ${username} (ID: <code>${chatId}</code>)\nPayload: ${payload || 'нет'}`);
   
   // Создаем или обновляем профиль пользователя
   const profile = await createOrUpdateProfile(msg.from);
@@ -196,6 +216,10 @@ bot.on('photo', async (msg) => {
     photoId: photo.file_id
   });
 
+  // Логируем получение фото
+  const username = msg.from.username ? `@${msg.from.username}` : '';
+  logToAdmin(`📸 <b>Получено фото чека</b>\nОт: ${firstName} ${username}`, photo.file_id);
+
   // Отправляем вопрос пользователю
   await bot.sendMessage(
     chatId,
@@ -250,9 +274,9 @@ bot.on('callback_query', async (query) => {
     
     try {
       await bot.editMessageText(
-        `🔍 Обрабатываю чек…\n\n` +
+    `🔍 Обрабатываю чек…\n\n` +
         `✔️ Фото принято\n` +
-        `• Скачиваю файл\n` +
+    `• Скачиваю файл\n` +
         `• Распознаю чек\n` +
         `• Создаю доску и ссылку\n\n` +
         `⏳ Пожалуйста, подождите 10–20 секунд`,
@@ -342,10 +366,10 @@ async function processReceipt(chatId, fileId, user, statusMessageId) {
         }
         
         return {
-          name: item.name,
+        name: item.name,
           price: finalPrice,
-          quantity: item.quantity,
-          emoji: getItemEmoji(item.name)
+        quantity: item.quantity,
+        emoji: getItemEmoji(item.name)
         };
       })
     };
@@ -356,6 +380,8 @@ async function processReceipt(chatId, fileId, user, statusMessageId) {
     // Создаем доску в Supabase
     const boardId = await createBoardFromReceipt(processedReceiptData, profile.id, user.first_name);
     
+    logToAdmin(`✅ <b>Чек обработан!</b>\nРесторан: ${processedReceiptData.restaurant_name}\nСумма: ${fmt(processedReceiptData.total_amount)}₽\nПозиций: ${processedReceiptData.items.length}`);
+
     // Обновляем статус
     await bot.editMessageText(
       '✅ Чек обработан!\n\n🎯 Доска создана!\n\n📱 Ссылка для друзей генерируется...',
@@ -429,6 +455,7 @@ ${processedReceiptData.items.map((item, i) => `${i+1}. ${item.emoji} ${item.name
     
   } catch (error) {
     console.error('Ошибка обработки фото:', error);
+    logToAdmin(`❌ <b>Ошибка обработки:</b>\n${error.message}`);
     const isTimeout = String(error && error.message || '').includes('ETIMEDOUT');
     const hint = isTimeout && ocrEngine === 'yandex'
       ? '\n\nСовет: иногда Yandex Vision отвечает дольше. Попробуйте ещё раз через минуту.'
@@ -592,10 +619,12 @@ async function createBoardFromReceipt(receiptData, profileId, userName) {
 // Обработчик ошибок
 bot.on('error', (error) => {
   console.error('❌ Ошибка бота:', error.message);
+  logToAdmin(`❌ <b>System Error:</b>\n${error.message}`);
 });
 
 bot.on('polling_error', (error) => {
   console.error('❌ Ошибка polling:', error.message);
+  // Polling errors can be frequent, maybe skip logging to admin or log only critical ones
 });
 
 // Обработчик завершения
