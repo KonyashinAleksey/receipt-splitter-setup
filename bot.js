@@ -303,6 +303,9 @@ bot.on('callback_query', async (query) => {
 async function processReceipt(chatId, fileId, user, statusMessageId) {
   const ocrEngine = (process.env.OCR_ENGINE || 'tesseract').toLowerCase();
   
+  // Форматирование чисел с разделителями (1 000)
+  const fmt = (num) => num.toLocaleString('ru-RU');
+
   try {
     const file = await bot.getFile(fileId);
     
@@ -398,9 +401,6 @@ async function processReceipt(chatId, fileId, user, statusMessageId) {
     const receiptTotal = processedReceiptData.total_amount;
     const difference = Math.abs(receiptTotal - itemsTotal);
     const isMatching = difference < 1; 
-
-    // Форматирование чисел с разделителями (1 000)
-    const fmt = (num) => num.toLocaleString('ru-RU');
 
     // Формируем заголовок и статус валидации
     let validationMessage = '';
