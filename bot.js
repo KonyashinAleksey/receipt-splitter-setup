@@ -411,7 +411,7 @@ ${processedReceiptData.items.map((item, i) => `${i+1}. ${item.emoji} ${item.name
     `;
 
     const deepLink = `https://t.me/SplitterReceipt_bot?start=join_${boardId}`;
-    const shareText = `Приглашение в доску «${processedReceiptData.restaurant_name}» на ${fmt(receiptTotal)}₽`;
+    const shareText = `👋 ${user.first_name} приглашает разделить счет на ${fmt(receiptTotal)}₽`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(shareText)}`;
 
     await bot.sendMessage(chatId, resultMessage, {

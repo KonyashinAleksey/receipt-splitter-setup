@@ -11,8 +11,13 @@ const JoinPage: React.FC = () => {
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
 
-  // Получаем ID доски из URL
+  // Получаем ID доски из URL и разворачиваем окно
   useEffect(() => {
+    // Принудительно разворачиваем окно Telegram на полную высоту
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.expand();
+    }
+
     const pathBoardId = window.location.pathname.split('/join/')[1];
     if (pathBoardId) {
       setBoardId(pathBoardId);
@@ -40,24 +45,19 @@ const JoinPage: React.FC = () => {
     try {
       setJoining(true);
       
-      // Получаем данные пользователя из Telegram или создаем гостя
       const user = getOrCreateGuest();
       
-      // Проверяем, не присоединен ли уже пользователь
       const existingParticipant = board.participants?.find(
         p => p.name === user.first_name || p.profile?.telegram_id === user.id
       );
 
       if (existingParticipant) {
-        showTelegramAlert('Вы уже присоединены к этой доске!');
         setJoined(true);
+        window.location.href = `/board/${boardId}`;
         return;
       }
 
-      // Добавляем участника по имени с telegram_id
       await addParticipantByName(boardId, user.first_name, user.id);
-
-      // Сразу перенаправляем на доску без всплывающего окна
       window.location.href = `/board/${boardId}`;
       
     } catch (err) {
@@ -68,103 +68,32 @@ const JoinPage: React.FC = () => {
     }
   };
 
+  const handleShare = () => {
+    const link = `${window.location.origin}/join/${boardId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      showTelegramAlert('Ссылка скопирована!');
+    }).catch(() => {
+        showTelegramAlert('Ссылка в адресной строке');
+    });
+  };
+
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        gap: '20px'
-      }}>
-        <div style={{ fontSize: '48px' }}>🍽️</div>
-        <h2>Загружаем доску...</h2>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+        <div style={{ fontSize: '48px', marginBottom: '10px' }}>🍽️</div>
+        <div>Загрузка...</div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !board) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        gap: '20px',
-        padding: '20px',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '48px' }}>❌</div>
-        <h2>Ошибка</h2>
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#007aff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            cursor: 'pointer'
-          }}
-        >
-          Попробовать снова
+      <div style={{ padding: '20px', textAlign: 'center', marginTop: '40px' }}>
+        <h2>❌ Ошибка</h2>
+        <p>{error || 'Доска не найдена'}</p>
+        <button onClick={() => window.location.reload()} style={{ marginTop: '20px', padding: '10px 20px' }}>
+          Обновить
         </button>
-      </div>
-    );
-  }
-
-  if (!board) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        gap: '20px',
-        padding: '20px',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '48px' }}>🍽️</div>
-        <h1>ReceiptSplitter</h1>
-        <p>Введите ID доски для присоединения:</p>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <input
-            type="text"
-            value={boardId}
-            onChange={(e) => setBoardId(e.target.value)}
-            placeholder="ID доски"
-            style={{
-              padding: '10px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '16px',
-              minWidth: '200px'
-            }}
-          />
-          <button
-            onClick={() => loadBoard(boardId)}
-            disabled={!boardId}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: boardId ? '#007aff' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              cursor: boardId ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Загрузить
-          </button>
-        </div>
-        <p style={{ fontSize: '14px', color: '#666' }}>
-          Или перейдите по ссылке: /join/ID_ДОСКИ
-        </p>
       </div>
     );
   }
@@ -174,145 +103,163 @@ const JoinPage: React.FC = () => {
     p => p.name === user?.first_name || p.profile?.telegram_id === user?.id
   );
 
+  const restaurantName = board.restaurant_name || board.restaurant?.name || 'Ресторан';
+  const date = new Date(board.created_at).toLocaleDateString('ru-RU');
+  const creator = board.participants?.find(p => p.is_creator)?.name || 'Создатель';
+
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-      <h1>🎉 Присоединиться к доске</h1>
-      
-      <div style={{ 
-        backgroundColor: '#e3f2fd', 
-        padding: '16px', 
-        borderRadius: '8px',
-        marginBottom: '20px',
-        textAlign: 'center'
-      }}>
-        <p><strong>👋 Привет, {user.first_name}!</strong></p>
-        <p style={{ color: '#666', fontSize: '14px' }}>
-          {user.username ? `@${user.username}` : 'Гость'}
-        </p>
-      </div>
-      
-      <div style={{ 
-        backgroundColor: '#f8f9fa', 
-        padding: '20px', 
-        borderRadius: '12px',
-        marginBottom: '20px'
-      }}>
-        <h2>{board.name}</h2>
-        {board.restaurant && (
-          <p><strong>Ресторан:</strong> {board.restaurant.name}</p>
-        )}
-        {board.restaurant?.address && (
-          <p><strong>Адрес:</strong> {board.restaurant.address}</p>
-        )}
-        <p><strong>Общая сумма:</strong> {board.total_amount}₽</p>
-        <p><strong>Позиций:</strong> {board.bill_items?.length || 0}</p>
-        <p><strong>Участников:</strong> {board.participants?.length || 0}</p>
-      </div>
+    <div style={{ 
+        padding: '24px 20px 40px 20px', // Больше отступ снизу
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--tg-theme-bg-color, #fff)',
+        color: 'var(--tg-theme-text-color, #000)',
+        boxSizing: 'border-box'
+    }}>
+      <style>{`
+        .header-section {
+            text-align: center;
+            margin-bottom: 32px;
+            margin-top: 10px;
+        }
+        .inviter-badge {
+            font-size: 16px;
+            color: var(--tg-theme-text-color, #000);
+            font-weight: 500;
+        }
+        .inviter-badge span {
+            color: var(--tg-theme-button-color, #007aff);
+            font-weight: 600;
+        }
+        .info-card {
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            margin-bottom: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .restaurant-name {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .receipt-date {
+            color: var(--tg-theme-hint-color, #888);
+            font-size: 14px;
+        }
+        .total-price {
+            font-size: 36px;
+            font-weight: 800;
+            margin-top: 12px;
+            color: var(--tg-theme-button-color, #007aff);
+        }
+        .main-action {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .btn-join {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            background-color: var(--tg-theme-button-color, #007aff);
+            color: var(--tg-theme-button-text-color, #fff);
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,122,255, 0.3);
+            transition: transform 0.1s;
+        }
+        .btn-join:active {
+            transform: scale(0.98);
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--tg-theme-button-color, #007aff);
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            margin-top: 12px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .participants-section {
+            text-align: center;
+        }
+        .section-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--tg-theme-hint-color, #aaa);
+            margin-bottom: 16px;
+        }
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        .user-chip {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+      `}</style>
 
-      {board.participants && board.participants.length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
-          <h3>👥 Участники:</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {board.participants.map((participant) => (
-              <div key={participant.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px',
-                backgroundColor: 'white',
-                border: '1px solid #e9ecef',
-                borderRadius: '8px'
-              }}>
-                <div>
-                  <strong>{participant.name}</strong>
-                  {participant.is_creator && (
-                    <span style={{ 
-                      marginLeft: '8px',
-                      backgroundColor: '#ffd700',
-                      color: '#000',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}>
-                      Создатель
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <span style={{ color: '#666' }}>
-                    {participant.total_amount}₽
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* 1. Кто приглашает */}
+      <div className="header-section">
+        <div style={{ fontSize: '42px', marginBottom: '16px' }}>👋</div>
+        <div className="inviter-badge">
+            <span>{creator}</span> приглашает вас<br/>разделить чек
         </div>
-      )}
+      </div>
+      
+      {/* 2. Инфо о чеке */}
+      <div className="info-card">
+        <div className="restaurant-name">{restaurantName}</div>
+        <div className="receipt-date">{date}</div>
+        <div className="total-price">
+            {board.total_amount.toLocaleString('ru-RU')} ₽
+        </div>
+      </div>
 
-      <div style={{ textAlign: 'center' }}>
+      {/* 3. Кнопка действия (Главная) */}
+      <div className="main-action">
         {isAlreadyJoined || joined ? (
-          <div style={{ 
-            padding: '20px',
-            backgroundColor: '#d4edda',
-            borderRadius: '8px',
-            color: '#155724'
-          }}>
-            <h3>✅ Вы уже присоединены!</h3>
-            <p>Теперь вы можете участвовать в разделении счета</p>
-            <button
-              onClick={() => window.location.href = `/board/${boardId}`}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                cursor: 'pointer',
-                marginTop: '10px'
-              }}
-            >
-              Перейти к доске
-            </button>
-          </div>
+          <button className="btn-join" onClick={() => window.location.href = `/board/${boardId}`}>
+            Перейти к чеку →
+          </button>
         ) : (
-          <button
-            onClick={handleJoin}
-            disabled={joining}
-            style={{
-              padding: '16px 32px',
-              backgroundColor: joining ? '#ccc' : '#007aff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '18px',
-              cursor: joining ? 'not-allowed' : 'pointer',
-              minWidth: '200px'
-            }}
-          >
-            {joining ? 'Присоединяемся...' : 'Присоединиться к доске'}
+          <button className="btn-join" onClick={handleJoin} disabled={joining}>
+            {joining ? 'Входим...' : 'Присоединиться'}
           </button>
         )}
+        
+        <button className="btn-outline" onClick={handleShare}>
+            🔗 Скопировать ссылку
+        </button>
       </div>
 
-      <div style={{ 
-        marginTop: '20px', 
-        padding: '16px', 
-        backgroundColor: '#e3f2fd',
-        borderRadius: '8px',
-        textAlign: 'center'
-      }}>
-        <p><strong>🔗 Поделитесь ссылкой с друзьями:</strong></p>
-        <p style={{ 
-          fontFamily: 'monospace',
-          backgroundColor: 'white',
-          padding: '8px',
-          borderRadius: '4px',
-          wordBreak: 'break-all'
-        }}>
-          {window.location.origin}/join/{boardId}
-        </p>
+      {/* 4. Участники */}
+      <div className="participants-section">
+        <div className="section-label">Уже участвуют</div>
+        <div className="chips-container">
+            {board.participants?.map((p) => (
+                <div key={p.id} className="user-chip">
+                    {p.name} {p.is_creator ? '👑' : ''}
+                </div>
+            ))}
+        </div>
       </div>
+
     </div>
   );
 };

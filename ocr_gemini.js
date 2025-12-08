@@ -5,11 +5,20 @@ const fs = require('fs');
  * Инициализация Gemini клиента лениво
  */
 const getGeminiModel = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const apiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+  
+  if (apiKeys.length === 0) {
     throw new Error('GEMINI_API_KEY не задан в .env файле');
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
+
+  // Выбираем случайный ключ из списка для распределения нагрузки
+  const randomKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+  
+  // Логируем (частично скрывая ключ), какой ключ используется (для отладки)
+  const maskedKey = randomKey.slice(0, 4) + '...' + randomKey.slice(-4);
+  console.log(`🔑 Используем ключ: ${maskedKey} (всего ключей: ${apiKeys.length})`);
+
+  const genAI = new GoogleGenerativeAI(randomKey);
   // Используем быструю и эффективную модель gemini-2.5-flash, чтобы избежать лимитов Rate Limit
   return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 };

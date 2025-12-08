@@ -9,6 +9,7 @@
     "test-ocr": "node test-ocr.js",
     "bot": "node bot.js",
     "start": "node bot.js",
+    "deploy:miniapp": "cd miniapp && npm run build && cd .. && node scripts/yc-upload.js",
     "setup": "npm install && node test-final.js"
   },
   "dependencies": {
