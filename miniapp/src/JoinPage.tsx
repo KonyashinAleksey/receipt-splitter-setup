@@ -108,7 +108,7 @@ const JoinPage: React.FC = () => {
   const creator = board.participants?.find(p => p.is_creator)?.name || 'Создатель';
 
   return (
-    <div style={{ 
+      <div style={{ 
         padding: '24px 20px 40px 20px', // Больше отступ снизу
         minHeight: '100vh',
         display: 'flex',
@@ -236,7 +236,7 @@ const JoinPage: React.FC = () => {
         {isAlreadyJoined || joined ? (
           <button className="btn-join" onClick={() => window.location.href = `/board/${boardId}`}>
             Перейти к чеку →
-          </button>
+            </button>
         ) : (
           <button className="btn-join" onClick={handleJoin} disabled={joining}>
             {joining ? 'Входим...' : 'Присоединиться'}

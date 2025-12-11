@@ -32,7 +32,7 @@ const supabase = createClient(
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
 // ID админского канала для логов
-const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID; // Добавьте это в .env
+const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID;
 
 // Функция отправки логов
 async function logToAdmin(text, photoFileId = null) {
@@ -48,6 +48,25 @@ async function logToAdmin(text, photoFileId = null) {
     console.error('Ошибка отправки лога:', e.message);
   }
 }
+
+// --- REALTIME LOGGING ---
+// Слушаем таблицу debug_logs и пересылаем в Telegram
+supabase
+  .channel('debug_logs_channel')
+  .on(
+    'postgres_changes',
+    { event: 'INSERT', schema: 'public', table: 'debug_logs' },
+    (payload) => {
+      const { user_id, message, meta } = payload.new;
+      const time = meta?.duration ? `${meta.duration}ms` : 'N/A';
+      const step = meta?.step || 'Unknown';
+      
+      const logText = `⏱️ <b>Debug Log</b>\nUser: <code>${user_id}</code>\nAction: ${message}\nTime: <b>${time}</b>\nStep: ${step}`;
+      logToAdmin(logText);
+    }
+  )
+  .subscribe();
+// ------------------------
 
 console.log('🤖 ReceiptSplitter Bot запущен!');
 

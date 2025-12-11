@@ -86,7 +86,7 @@ const BoardPage: React.FC = () => {
       
       // Получаем telegram_id текущего пользователя
       const telegramId = currentUser?.id;
-
+      
       // Обновляем основную информацию доски
       await updateBoard(boardId, {
         restaurant_name: updatedBoard.restaurant_name,
@@ -312,11 +312,11 @@ const BoardPage: React.FC = () => {
       </div>
 
       {!isEditMode && (
-        <SummaryCard 
-          board={board}
-          selections={selections}
-          participants={board.participants || []}
-        />
+      <SummaryCard 
+        board={board}
+        selections={selections}
+        participants={board.participants || []}
+      />
       )}
     </div>
   );

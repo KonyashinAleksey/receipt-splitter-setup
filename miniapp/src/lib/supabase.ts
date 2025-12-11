@@ -215,12 +215,12 @@ export const updateBoard = async (boardId: string, updates: {
   
   // Если telegramId не передан, пробуем обычный update (может не сработать из-за RLS)
   if (!telegramId) {
-    const { data, error } = await supabase
-      .from('boards')
-      .update(updates)
-      .eq('id', boardId)
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('boards')
+    .update(updates)
+    .eq('id', boardId)
+    .select()
+    .single();
     if (error) throw error;
     return data;
   }
@@ -330,16 +330,16 @@ export const updateBoardItems = async (boardId: string, items: Array<{
     } else {
       // Обновление
       return updateItem(item.id, {
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
         emoji: item.emoji
-      });
-    }
+    });
+  }
   });
 
   // Ждем завершения всех операций
   await Promise.all(upsertPromises);
-  
+
   return { success: true };
 };

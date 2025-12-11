@@ -59,21 +59,81 @@ const MyBoards: React.FC = () => {
     console.log('🔍 MyBoards: initData:', tgWebApp?.initData);
 
     const load = async () => {
+      const startTime = performance.now();
+      
+      // Небольшая задержка, чтобы Telegram SDK успел проинициализироваться
+      if (!tgUserId) {
+        await new Promise(r => setTimeout(r, 500));
+        // Пробуем получить еще раз
+        const retryUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user;
+        if (retryUser) {
+            tgUserId = retryUser.id;
+            setTelegramUserId(tgUserId);
+        }
+      }
+
       try {
         setLoading(true);
         setError(null);
 
         if (!tgUserId) {
-          console.log('❌ MyBoards: No telegram user ID found');
-          setError('Откройте Mini App через Telegram, чтобы увидеть ваши доски');
-          setLoading(false);
-          return;
+          // Если это локальная разработка, можно использовать тестовый ID (опционально)
+          const isLocal = window.location.hostname === 'localhost';
+          if (isLocal) {
+             console.log('🔧 Localhost detected, using fallback ID');
+             // tgUserId = ...; // Можно раскомментировать для тестов
+          } else {
+             console.log('❌ MyBoards: No telegram user ID found after retry');
+             
+             // LOG ERROR
+             supabase.from('debug_logs').insert({
+                user_id: 0,
+                message: 'No Telegram ID found',
+                meta: { step: 'init', duration: Math.round(performance.now() - startTime) }
+             }).then(() => {});
+
+             setError('Не удалось получить данные пользователя. Попробуйте перезапустить Mini App.');
+             setLoading(false);
+             return;
+          }
         }
 
-        // 1) Находим все участники по telegram_id пользователя, чтобы получить список board_id и информацию о роли
-        console.log('🔍 MyBoards: Searching for participants with telegram_id:', tgUserId);
+        // 1) Пытаемся загрузить через оптимизированную RPC функцию
+        console.log('🔍 MyBoards: Trying RPC get_user_boards with:', tgUserId);
         
-        // Сначала находим профиль пользователя
+        const rpcStart = performance.now();
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('get_user_boards', { p_telegram_id: tgUserId });
+
+        if (!rpcError && rpcData) {
+           console.log('✅ MyBoards: Loaded via RPC:', rpcData.length);
+           setBoards(rpcData as SimpleBoard[]);
+           setLoading(false);
+           
+           // LOG SUCCESS
+           const totalTime = Math.round(performance.now() - startTime);
+           const rpcTime = Math.round(performance.now() - rpcStart);
+           supabase.from('debug_logs').insert({
+              user_id: tgUserId,
+              message: `Loaded ${rpcData.length} boards`,
+              meta: { step: 'rpc_load', duration: totalTime, rpc_duration: rpcTime }
+           }).then(() => {});
+
+           return;
+        }
+
+        if (rpcError) {
+             console.warn('⚠️ MyBoards: RPC failed (maybe not created yet?), falling back to regular query.', rpcError);
+             // LOG RPC ERROR
+             supabase.from('debug_logs').insert({
+                user_id: tgUserId,
+                message: `RPC Failed: ${rpcError.message}`,
+                meta: { step: 'rpc_error', duration: Math.round(performance.now() - startTime) }
+             }).then(() => {});
+        }
+
+        // --- FALLBACK (Старый медленный метод) ---
+        // 1) Находим все участники по telegram_id пользователя
         const { data: profile, error: profileErr } = await supabase
           .from('profiles')
           .select('id')
@@ -224,41 +284,41 @@ const MyBoards: React.FC = () => {
               {createdBoards.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Нет созданных досок</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {createdBoards.map((b) => (
-                    <div key={b.id} style={{
-                      border: '1px solid #e9ecef',
-                      borderRadius: 8,
-                      padding: 12,
-                      background: 'var(--tg-theme-bg-color, #ffffff)',
-                      color: 'var(--tg-theme-text-color, #000000)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <div>
-                          <div style={{ fontWeight: 600, color: 'var(--tg-theme-text-color, #000000)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {createdBoards.map((b) => (
+                  <div key={b.id} style={{
+                    border: '1px solid #e9ecef',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: 'var(--tg-theme-bg-color, #ffffff)',
+                    color: 'var(--tg-theme-text-color, #000000)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--tg-theme-text-color, #000000)' }}>
                             {(b.restaurant_name || b.restaurant?.name || b.name || 'Без названия')}
-                          </div>
-                          <div style={{ color: 'var(--tg-theme-hint-color, #999999)', fontSize: 14 }}>
-                            {new Date(b.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div style={{ color: 'var(--tg-theme-hint-color, #999999)', fontSize: 14 }}>
+                          {new Date(b.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             {' • '}
                             {new Date(b.created_at).toLocaleDateString('ru-RU')}
-                          </div>
-                          <div style={{ color: 'var(--tg-theme-text-color, #000000)', fontSize: 14, marginTop: 4 }}>
-                            Сумма: {b.total_amount ?? 0}₽
-                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <Link to={`/board/${b.id}`} className="tg-btn" style={{ padding: '8px 12px', background: 'var(--tg-theme-button-color, #007aff)', color: 'var(--tg-theme-button-text-color, #fff)', borderRadius: 6, textDecoration: 'none' }}>
-                            📱 Открыть доску
-                          </Link>
-                          <button onClick={() => handleShare(b.id, (b.restaurant_name || b.restaurant?.name || b.name || 'Без названия'))} style={{ padding: '8px 12px', background: 'var(--tg-theme-secondary-bg-color, #e9ecef)', color: 'var(--tg-theme-text-color, #000000)', border: 'none', borderRadius: 6 }}>
-                            👥 Поделиться
-                          </button>
+                        <div style={{ color: 'var(--tg-theme-text-color, #000000)', fontSize: 14, marginTop: 4 }}>
+                          Сумма: {b.total_amount ?? 0}₽
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link to={`/board/${b.id}`} className="tg-btn" style={{ padding: '8px 12px', background: 'var(--tg-theme-button-color, #007aff)', color: 'var(--tg-theme-button-text-color, #fff)', borderRadius: 6, textDecoration: 'none' }}>
+                          📱 Открыть доску
+                        </Link>
+                          <button onClick={() => handleShare(b.id, (b.restaurant_name || b.restaurant?.name || b.name || 'Без названия'))} style={{ padding: '8px 12px', background: 'var(--tg-theme-secondary-bg-color, #e9ecef)', color: 'var(--tg-theme-text-color, #000000)', border: 'none', borderRadius: 6 }}>
+                          👥 Поделиться
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
               )}
             </>
           )}
@@ -269,38 +329,38 @@ const MyBoards: React.FC = () => {
               {invitedBoards.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Нет приглашений</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {invitedBoards.map((b) => (
-                    <div key={b.id} style={{
-                      border: '1px solid #e9ecef',
-                      borderRadius: 8,
-                      padding: 12,
-                      background: 'var(--tg-theme-bg-color, #ffffff)',
-                      color: 'var(--tg-theme-text-color, #000000)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <div>
-                          <div style={{ fontWeight: 600, color: 'var(--tg-theme-text-color, #000000)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {invitedBoards.map((b) => (
+                  <div key={b.id} style={{
+                    border: '1px solid #e9ecef',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: 'var(--tg-theme-bg-color, #ffffff)',
+                    color: 'var(--tg-theme-text-color, #000000)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--tg-theme-text-color, #000000)' }}>
                             {(b.restaurant_name || b.restaurant?.name || b.name || 'Без названия')}
-                          </div>
-                          <div style={{ color: 'var(--tg-theme-hint-color, #999999)', fontSize: 14 }}>
-                            {new Date(b.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div style={{ color: 'var(--tg-theme-hint-color, #999999)', fontSize: 14 }}>
+                          {new Date(b.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             {' • '}
                             {new Date(b.created_at).toLocaleDateString('ru-RU')}
-                          </div>
-                          <div style={{ color: 'var(--tg-theme-text-color, #000000)', fontSize: 14, marginTop: 4 }}>
-                            Сумма: {b.total_amount ?? 0}₽
-                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <Link to={`/board/${b.id}`} className="tg-btn" style={{ padding: '8px 12px', background: 'var(--tg-theme-button-color, #007aff)', color: 'var(--tg-theme-button-text-color, #fff)', borderRadius: 6, textDecoration: 'none' }}>
-                            📱 Открыть доску
-                          </Link>
+                        <div style={{ color: 'var(--tg-theme-text-color, #000000)', fontSize: 14, marginTop: 4 }}>
+                          Сумма: {b.total_amount ?? 0}₽
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link to={`/board/${b.id}`} className="tg-btn" style={{ padding: '8px 12px', background: 'var(--tg-theme-button-color, #007aff)', color: 'var(--tg-theme-button-text-color, #fff)', borderRadius: 6, textDecoration: 'none' }}>
+                          📱 Открыть доску
+                        </Link>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
               )}
             </>
           )}

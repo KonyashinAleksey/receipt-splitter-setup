@@ -386,11 +386,11 @@ const EditBoard: React.FC<EditBoardProps> = ({ board, onSave, onCancel }) => {
       `}
       </style>
 
-      <div className="edit-board">
+    <div className="edit-board">
         {/* Заголовок - теперь простой текст */}
-        <div className="edit-header">
+      <div className="edit-header">
           <h2>Редактирование чека</h2>
-        </div>
+      </div>
 
         {/* Основные данные */}
         <div className="edit-section">
@@ -433,11 +433,11 @@ const EditBoard: React.FC<EditBoardProps> = ({ board, onSave, onCancel }) => {
                 </div>
 
                 <div className="item-top-row">
-                  <div className="item-emoji">
-                    <select
-                      value={item.emoji}
-                      onChange={(e) => handleItemChange(index, 'emoji', e.target.value)}
-                    >
+                <div className="item-emoji">
+                  <select
+                    value={item.emoji}
+                    onChange={(e) => handleItemChange(index, 'emoji', e.target.value)}
+                  >
                       <option value="🍽️">🍽️</option>
                       <option value="🍷">🍷</option>
                       <option value="🍺">🍺</option>
@@ -447,30 +447,30 @@ const EditBoard: React.FC<EditBoardProps> = ({ board, onSave, onCancel }) => {
                       <option value="🍔">🍔</option>
                       <option value="🍜">🍜</option>
                       <option value="☕">☕</option>
-                    </select>
-                  </div>
+                  </select>
+                </div>
                   <input
                     type="text"
                     value={item.name}
                     onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                     className="item-name-input"
                     placeholder="Название блюда"
-                  />
-                </div>
-
+                      />
+                    </div>
+                    
                 <div className="item-bottom-row">
                   <div className="edit-number-group" style={{ flex: '0 0 90px' }}>
                     <label>Кол-во</label>
-                    <input
+                      <input
                       type="text"
                       inputMode="decimal"
                       value={item.tempQuantity}
                       onChange={(e) => handleItemChange(index, 'tempQuantity', e.target.value)}
                       className="unified-input"
                       style={{ textAlign: 'center' }}
-                    />
-                  </div>
-                  
+                      />
+                    </div>
+                    
                   <div className="edit-number-group">
                     <label>Сумма (₽)</label>
                     <input
@@ -497,13 +497,13 @@ const EditBoard: React.FC<EditBoardProps> = ({ board, onSave, onCancel }) => {
           {validationError ? (
             <div className="diff-text error">
               ⚠️ {validationError}
-            </div>
+          </div>
           ) : (
             <div className="summary-mini">
               <span>Позиций: {fmt(itemsTotal)}₽</span>
               <span>Чек: {fmt(currentTotal)}₽</span>
               <span className="diff-text success" style={{ width: 'auto', padding: '4px 12px' }}>✓ ОК</span>
-            </div>
+          </div>
           )}
           
           <div className="actions-buttons">

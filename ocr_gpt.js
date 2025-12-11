@@ -8,8 +8,8 @@ const getOpenAIClient = () => {
     throw new Error('OPENAI_API_KEY не задан в .env файле');
   }
   return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-  });
+  apiKey: process.env.OPENAI_API_KEY
+});
 };
 
 /**
