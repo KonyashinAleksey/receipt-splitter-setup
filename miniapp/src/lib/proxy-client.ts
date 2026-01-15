@@ -228,3 +228,22 @@ export const deleteBoardItem = async (itemId: string, telegramId?: number) => {
   const result: ProxyResponse<null> = await response.json();
   if (result.error) throw new Error(result.error);
 };
+
+// Получить доски пользователя (через RPC)
+export const getUserBoards = async (telegramId: number) => {
+  const url = `${PROXY_URL}/api/user/${telegramId}/boards`;
+  log('GET', url);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const result: ProxyResponse<any[]> = await response.json();
+    if (result.error) throw new Error(result.error);
+    logSuccess('GET', url, result.data);
+    return result.data;
+  } catch (error) {
+    logError('GET', url, error);
+    throw error;
+  }
+};

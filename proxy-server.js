@@ -322,6 +322,24 @@ app.delete('/api/items/:itemId', async (req, res) => {
   }
 });
 
+// ===== ЭНДПОИНТЫ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ =====
+
+// Получить доски пользователя (через RPC)
+app.get('/api/user/:telegramId/boards', async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+    
+    const { data, error } = await supabase
+      .rpc('get_user_boards', { p_telegram_id: parseInt(telegramId) });
+
+    if (error) throw error;
+    res.json({ data, error: null });
+  } catch (err) {
+    console.error('❌ Error fetching user boards:', err);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 // ===== HEALTH CHECK =====
 app.get('/health', (req, res) => {
   res.json({ 

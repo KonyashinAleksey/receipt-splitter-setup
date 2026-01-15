@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getUserBoards } from '../lib/proxy-client';
 import { initTelegramWebApp } from '../lib/telegram';
 import { Link } from 'react-router-dom';
 
@@ -98,37 +99,36 @@ const MyBoards: React.FC = () => {
         }
         }
 
-        // 1) Пытаемся загрузить через оптимизированную RPC функцию
-        console.log('🔍 MyBoards: Trying RPC get_user_boards with:', tgUserId);
+        // 1) Загружаем доски через прокси
+        console.log('🔍 MyBoards: Loading boards via proxy for user:', tgUserId);
         
         const rpcStart = performance.now();
-        const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_user_boards', { p_telegram_id: tgUserId });
+        try {
+          const rpcData = await getUserBoards(tgUserId);
 
-        if (!rpcError && rpcData) {
-           console.log('✅ MyBoards: Loaded via RPC:', rpcData.length);
-           setBoards(rpcData as SimpleBoard[]);
-           setLoading(false);
-           
-           // LOG SUCCESS
-           const totalTime = Math.round(performance.now() - startTime);
-           const rpcTime = Math.round(performance.now() - rpcStart);
-           supabase.from('debug_logs').insert({
-              user_id: tgUserId,
-              message: `Loaded ${rpcData.length} boards`,
-              meta: { step: 'rpc_load', duration: totalTime, rpc_duration: rpcTime }
-           }).then(() => {});
+          if (rpcData) {
+             console.log('✅ MyBoards: Loaded via proxy:', rpcData.length);
+             setBoards(rpcData as SimpleBoard[]);
+             setLoading(false);
+             
+             // LOG SUCCESS
+             const totalTime = Math.round(performance.now() - startTime);
+             const rpcTime = Math.round(performance.now() - rpcStart);
+             supabase.from('debug_logs').insert({
+                user_id: tgUserId,
+                message: `Loaded ${rpcData.length} boards`,
+                meta: { step: 'proxy_load', duration: totalTime, rpc_duration: rpcTime }
+             }).then(() => {});
 
-           return;
-        }
-
-        if (rpcError) {
-             console.warn('⚠️ MyBoards: RPC failed (maybe not created yet?), falling back to regular query.', rpcError);
+             return;
+          }
+        } catch (rpcError: any) {
+             console.warn('⚠️ MyBoards: Proxy failed, falling back to regular query.', rpcError);
              // LOG RPC ERROR
              supabase.from('debug_logs').insert({
                 user_id: tgUserId,
-                message: `RPC Failed: ${rpcError.message}`,
-                meta: { step: 'rpc_error', duration: Math.round(performance.now() - startTime) }
+                message: `Proxy Failed: ${rpcError.message}`,
+                meta: { step: 'proxy_error', duration: Math.round(performance.now() - startTime) }
              }).then(() => {});
         }
 
