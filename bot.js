@@ -403,7 +403,7 @@ async function processReceipt(chatId, fileId, user, statusMessageId) {
     const boardId = await createBoardFromReceipt(processedReceiptData, profile.id, user.first_name);
     
     logToAdmin(`✅ <b>Чек обработан!</b>\nРесторан: ${processedReceiptData.restaurant_name}\nСумма: ${fmt(processedReceiptData.total_amount)}₽\nПозиций: ${processedReceiptData.items.length}`);
-
+    
     // Обновляем статус
     await bot.editMessageText(
       '✅ Чек обработан!\n\n🎯 Доска создана!\n\n📱 Ссылка для друзей генерируется...',

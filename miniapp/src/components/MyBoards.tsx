@@ -93,9 +93,9 @@ const MyBoards: React.FC = () => {
              }).then(() => {});
 
              setError('Не удалось получить данные пользователя. Попробуйте перезапустить Mini App.');
-             setLoading(false);
-             return;
-          }
+          setLoading(false);
+          return;
+        }
         }
 
         // 1) Пытаемся загрузить через оптимизированную RPC функцию

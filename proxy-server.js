@@ -26,10 +26,25 @@ app.use(cors({
 
 app.use(express.json());
 
-// Middleware для логирования
+// Middleware для логирования запросов
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] 📥 ${req.method} ${req.path}`, req.body ? JSON.stringify(req.body).slice(0, 100) : '');
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  console.log(`\n[${timestamp}] 📥 ${req.method} ${req.path}`);
+  console.log(`   IP: ${ip}`);
+  console.log(`   User-Agent: ${req.headers['user-agent']?.slice(0, 80)}`);
+  console.log(`   Origin: ${req.headers['origin'] || 'none'}`);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log(`   Body:`, JSON.stringify(req.body).slice(0, 150));
+  }
+  
+  // Логируем ответ
+  const originalSend = res.json;
+  res.json = function(data) {
+    console.log(`   ✅ Response ${res.statusCode}:`, JSON.stringify(data).slice(0, 200));
+    originalSend.call(this, data);
+  };
+  
   next();
 });
 

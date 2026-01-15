@@ -39,7 +39,7 @@ const BoardPage: React.FC = () => {
       
       console.log('✅ Данные загружены:', { board: boardData, selections: selectionsData });
       setBoard(boardData);
-      setSelections(selectionsData);
+      setSelections(selectionsData || []);
     } catch (err) {
       console.error('❌ Ошибка загрузки данных:', err);
       setError('Не удалось загрузить данные доски');
