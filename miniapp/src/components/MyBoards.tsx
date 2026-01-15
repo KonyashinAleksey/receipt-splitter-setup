@@ -104,7 +104,7 @@ const MyBoards: React.FC = () => {
         
         const rpcStart = performance.now();
         try {
-          const rpcData = await getUserBoards(tgUserId);
+          const rpcData = await getUserBoards(tgUserId!);
 
           if (rpcData) {
              console.log('✅ MyBoards: Loaded via proxy:', rpcData.length);

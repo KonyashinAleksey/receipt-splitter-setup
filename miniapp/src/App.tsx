@@ -25,27 +25,41 @@ const BoardPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
 
   const loadBoardData = useCallback(async () => {
-    if (!boardId) return;
+    if (!boardId) {
+      console.log('⚠️ Нет boardId');
+      return;
+    }
     
     try {
       setLoading(true);
       setError(null);
-      console.log('📥 Загружаем данные доски:', boardId);
+      console.log('📥 [DEBUG] Начинаем загрузку доски:', boardId);
+      console.log('📥 [DEBUG] Время начала:', new Date().toISOString());
       
-      const [boardData, selectionsData] = await Promise.all([
-        getBoard(boardId),
-        getItemSelections(boardId)
-      ]);
+      // Загружаем данные по отдельности для детального логирования
+      console.log('📥 [DEBUG] Шаг 1: Загружаем board...');
+      const boardData = await getBoard(boardId);
+      console.log('✅ [DEBUG] Board загружен:', boardData ? `ID: ${boardData.id}, Name: ${boardData.name}` : 'null');
+      console.log('✅ [DEBUG] Board полностью:', JSON.stringify(boardData).slice(0, 200));
       
-      console.log('✅ Данные загружены:', { board: boardData, selections: selectionsData });
+      console.log('📥 [DEBUG] Шаг 2: Загружаем selections...');
+      const selectionsData = await getItemSelections(boardId);
+      console.log('✅ [DEBUG] Selections загружены:', selectionsData ? `Count: ${selectionsData.length}` : 'null');
+      
+      console.log('📥 [DEBUG] Шаг 3: Устанавливаем данные в state...');
       setBoard(boardData);
       setSelections(selectionsData || []);
-    } catch (err) {
-      console.error('❌ Ошибка загрузки данных:', err);
+      console.log('✅ [DEBUG] Данные установлены успешно');
+    } catch (err: any) {
+      console.error('❌ [DEBUG] ОШИБКА в loadBoardData:', err);
+      console.error('❌ [DEBUG] Тип ошибки:', err?.constructor?.name);
+      console.error('❌ [DEBUG] Сообщение:', err?.message);
+      console.error('❌ [DEBUG] Stack:', err?.stack);
       setError('Не удалось загрузить данные доски');
       showTelegramAlert('Ошибка загрузки данных доски');
     } finally {
       setLoading(false);
+      console.log('🏁 [DEBUG] loadBoardData завершен');
     }
   }, [boardId]);
 
