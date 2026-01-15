@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-dom';
 import { Board, BillItem, ItemSelection } from './types';
-import { getBoard, getItemSelections, createItemSelection, updateItemSelection, deleteItemSelection, addParticipantByName, updateBoard, updateBoardItems, deleteBoardItem } from './lib/supabase';
+import { getBoard, getItemSelections, createItemSelection, updateItemSelection, deleteItemSelection, addParticipantByName, updateBoard, updateBoardItems, deleteBoardItem } from './lib/proxy-client';
 import { subscribeToItemSelections, subscribeToParticipants, unsubscribeFromChannel } from './lib/realtime';
 import { initTelegramWebApp, showTelegramAlert, hapticFeedback, getOrCreateGuest } from './lib/telegram';
 import ItemCard from './components/ItemCard';

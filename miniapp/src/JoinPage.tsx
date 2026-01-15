@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Board } from './types';
-import { getBoard, addParticipantByName } from './lib/supabase';
+import { getBoard, addParticipantByName } from './lib/proxy-client';
 import { getOrCreateGuest, showTelegramAlert } from './lib/telegram';
 
 const JoinPage: React.FC = () => {
