@@ -681,6 +681,24 @@ function getItemEmoji(itemName) {
   return '🍽️'; // Дефолтный эмодзи
 }
 
+// Глобальный обработчик ошибок бота
+bot.on('polling_error', async (error) => {
+  console.error('❌ Polling error:', error.message);
+  await logToAdmin(`🚨 <b>Ошибка polling бота:</b>\n<code>${error.message}</code>`);
+});
+
+// Обработчик необработанных ошибок
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('❌ Unhandled Rejection:', reason);
+  await logToAdmin(`🚨 <b>Необработанная ошибка:</b>\n<code>${reason}</code>`);
+});
+
+process.on('uncaughtException', async (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  await logToAdmin(`🚨 <b>Критическая ошибка:</b>\n<code>${error.message}\n${error.stack}</code>`);
+  process.exit(1); // Перезапуск через PM2
+});
+
 console.log('✅ Бот готов к работе!');
 console.log('📱 Найдите @SplitterReceipt_bot в Telegram');
 console.log('🛑 Нажмите Ctrl+C для остановки');

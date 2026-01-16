@@ -4,9 +4,29 @@
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
+const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const PORT = process.env.PROXY_PORT || 3001;
+
+// Telegram Bot для логирования ошибок
+const bot = process.env.TELEGRAM_BOT_TOKEN 
+  ? new TelegramBot(process.env.TELEGRAM_BOT_TOKEN)
+  : null;
+const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID;
+
+// Функция логирования ошибок в Telegram
+async function logErrorToTelegram(errorText) {
+  if (!bot || !ADMIN_CHANNEL_ID) return;
+  
+  try {
+    await bot.sendMessage(ADMIN_CHANNEL_ID, `🚨 <b>Ошибка Proxy Server:</b>\n${errorText}`, { 
+      parse_mode: 'HTML' 
+    });
+  } catch (e) {
+    console.error('Не удалось отправить лог в Telegram:', e.message);
+  }
+}
 
 // Supabase клиент (серверная сторона)
 const supabase = createClient(
@@ -349,10 +369,56 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ===== ЛОГИРОВАНИЕ ОШИБОК ОТ КЛИЕНТА =====
+app.post('/api/log-error', async (req, res) => {
+  try {
+    const { message, stack, context, userAgent, url, timestamp, telegramUser } = req.body;
+    
+    const errorText = `
+🔴 <b>Ошибка в Mini App</b>
+📱 Пользователь: ${telegramUser?.first_name || 'Unknown'} (@${telegramUser?.username || 'no_username'})
+⚠️ Сообщение: <code>${message}</code>
+📍 Контекст: ${context || 'N/A'}
+🌐 URL: ${url}
+🕐 Время: ${timestamp}
+📱 UserAgent: ${userAgent?.slice(0, 100)}
+${stack ? `\n🔧 Stack:\n<code>${stack.slice(0, 500)}</code>` : ''}
+    `.trim();
+    
+    await logErrorToTelegram(errorText);
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ Error logging client error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Глобальный обработчик ошибок Express
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled error:', err);
+  logErrorToTelegram(`<code>${req.method} ${req.path}\n${err.message}\n${err.stack?.slice(0, 500)}</code>`);
+  res.status(500).json({ data: null, error: 'Internal server error' });
+});
+
+// Обработчик необработанных Promise
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('❌ Unhandled Rejection:', reason);
+  await logErrorToTelegram(`<b>Unhandled Rejection:</b>\n<code>${reason}</code>`);
+});
+
+// Обработчик критических ошибок
+process.on('uncaughtException', async (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  await logErrorToTelegram(`<b>Критическая ошибка прокси:</b>\n<code>${error.message}\n${error.stack?.slice(0, 500)}</code>`);
+  process.exit(1); // PM2 перезапустит
+});
+
 // Запуск сервера
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Proxy server running on http://0.0.0.0:${PORT}`);
   console.log(`📡 Supabase URL: ${process.env.SUPABASE_URL}`);
   console.log(`🔐 Using SERVICE_ROLE_KEY for auth bypass`);
   console.log(`🌐 CORS enabled for Yandex Cloud domains`);
+  console.log(`📱 Error logging to Telegram: ${bot && ADMIN_CHANNEL_ID ? '✅' : '❌'}`);
 });
