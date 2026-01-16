@@ -12,6 +12,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import EditBoard from './components/EditBoard';
 import MyBoards from './components/MyBoards';
 import JoinPage from './JoinPage';
+import Footer from './components/Footer';
 import './App.css';
 
 // Компонент для страницы доски
@@ -369,6 +370,8 @@ const BoardPage: React.FC = () => {
         participants={board.participants || []}
       />
       )}
+
+      <Footer />
     </div>
   );
 };

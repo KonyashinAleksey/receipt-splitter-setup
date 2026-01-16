@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getUserBoards } from '../lib/proxy-client';
 import { initTelegramWebApp } from '../lib/telegram';
 import { Link } from 'react-router-dom';
+import Footer from './Footer';
 
 type SimpleBoard = {
   id: string;
@@ -366,6 +367,8 @@ const MyBoards: React.FC = () => {
           )}
         </div>
       )}
+      
+      <Footer />
     </div>
   );
 };

@@ -119,6 +119,10 @@ bot.onText(/\/start(?:\s+(.*))?/, async (msg, match) => {
 /start - начать работу
 
 Готов разделить счет! 💰
+
+—
+👨‍💻 Разработано Aleksey Konyashin
+https://t.me/alekseyKonyashin
   `;
   
   bot.sendMessage(chatId, welcomeMessage);

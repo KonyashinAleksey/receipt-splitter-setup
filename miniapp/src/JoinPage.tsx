@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Board } from './types';
 import { getBoard, addParticipantByName } from './lib/proxy-client';
 import { getOrCreateGuest, showTelegramAlert } from './lib/telegram';
+import Footer from './components/Footer';
 
 const JoinPage: React.FC = () => {
   const [boardId, setBoardId] = useState('');
@@ -260,6 +261,7 @@ const JoinPage: React.FC = () => {
         </div>
       </div>
 
+      <Footer />
     </div>
   );
 };

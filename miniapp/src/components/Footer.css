@@ -1,0 +1,33 @@
+/* Footer.css */
+
+.app-footer {
+  margin-top: 40px;
+  padding: 20px 16px;
+  border-top: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  background-color: var(--tg-theme-bg-color, #ffffff);
+}
+
+.footer-content {
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 13px;
+  color: var(--tg-theme-hint-color, #999999);
+}
+
+.footer-link {
+  color: var(--tg-theme-link-color, #3390ec);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.footer-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.footer-link:active {
+  opacity: 0.6;
+}
