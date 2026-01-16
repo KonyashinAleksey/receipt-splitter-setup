@@ -149,11 +149,14 @@ const BoardPage: React.FC = () => {
   }, [boardId, loadBoardData]);
 
   // Отдельный useEffect для real-time подписок
+  // ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ОТЛАДКИ - Realtime пытается подключиться к Supabase напрямую
   useEffect(() => {
     if (!boardId || !board) return;
 
-    console.log('🔗 Подключаемся к real-time для доски:', boardId);
+    console.log('⚠️ [DEBUG] Realtime подписки ОТКЛЮЧЕНЫ - проверяем, в них ли проблема');
     
+    // ВРЕМЕННО ЗАКОММЕНТИРОВАНО
+    /*
     // Подключаемся к real-time обновлениям
     const selectionsChannel = subscribeToItemSelections(boardId, (newSelections) => {
       console.log('🔄 Получены новые выборы:', newSelections);
@@ -173,6 +176,7 @@ const BoardPage: React.FC = () => {
       unsubscribeFromChannel(selectionsChannel);
       unsubscribeFromChannel(participantsChannel);
     };
+    */
   }, [boardId, board]); // Зависим от ID доски и объекта доски
 
   const handleItemClick = async (item: BillItem) => {
