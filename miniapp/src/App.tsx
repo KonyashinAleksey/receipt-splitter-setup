@@ -273,10 +273,43 @@ const BoardPage: React.FC = () => {
 
   if (error || !board) {
     return (
-      <div className="error-container">
+      <div className="error-container" style={{ padding: '20px', overflowY: 'auto', maxHeight: '100vh' }}>
         <h2>❌ Ошибка</h2>
-        <p>{error || 'Доска не найдена'}</p>
-        <button onClick={() => window.location.reload()}>
+        <p style={{ fontSize: '16px', marginBottom: '20px' }}>{error || 'Доска не найдена'}</p>
+        
+        <details style={{ marginTop: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '8px' }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>
+            🔍 Детали ошибки (нажмите)
+          </summary>
+          <div style={{ 
+            marginTop: '10px', 
+            padding: '15px', 
+            background: '#fff', 
+            border: '1px solid #ddd', 
+            borderRadius: '4px',
+            fontFamily: 'monospace',
+            fontSize: '11px',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            lineHeight: '1.5'
+          }}>
+            <div><strong>Board ID:</strong> {boardId || 'не указан'}</div>
+            <div><strong>Время:</strong> {new Date().toISOString()}</div>
+            <div><strong>URL прокси:</strong> {process.env.REACT_APP_PROXY_URL || 'не задан'}</div>
+            <div style={{ marginTop: '10px', padding: '10px', background: '#ffe6e6', borderRadius: '4px' }}>
+              <strong>User Agent:</strong><br/>{navigator.userAgent}
+            </div>
+            <div style={{ marginTop: '10px', padding: '10px', background: '#e6f3ff', borderRadius: '4px' }}>
+              <strong>📋 Инструкция:</strong><br/>
+              Сделайте СКРИНШОТ этого экрана и отправьте разработчику
+            </div>
+          </div>
+        </details>
+        
+        <button 
+          onClick={() => window.location.reload()}
+          style={{ marginTop: '20px', padding: '15px 30px', fontSize: '16px' }}
+        >
           Попробовать снова
         </button>
       </div>
